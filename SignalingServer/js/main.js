@@ -72,6 +72,7 @@ socket.on('message', function(message) {
   if (message === 'got user media') {
     maybeStart();
   } else if (message.type === 'offer') {
+    console.log('offers');
     if (!isInitiator && !isStarted) {
       maybeStart();
     }
@@ -117,7 +118,7 @@ function gotStream(stream) {
 gotStream()
 
 var constraints = {
-  video: false
+  video: true
 };
 
 console.log('Getting user media with constraints', constraints);
@@ -138,6 +139,7 @@ function maybeStart() {
     console.log('isInitiator', isInitiator);
     if (isInitiator) {
       doCall();
+      //pc.createOffer(setLocalAndSendMessage, handleCreateOfferError);
     }
   }
 }
@@ -251,7 +253,7 @@ function hangup() {
 function handleRemoteHangup() {
   console.log('Session terminated.');
   stop();
-  //isInitiator = false;
+  isInitiator = false;
 }
 
 function stop() {
