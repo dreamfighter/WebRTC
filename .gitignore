@@ -59,3 +59,5 @@ test.gitsecret
 
 # lint baseline ignore since it's superseed by per flavor files
 app/lint-baseline.xml
+
+SignalingServer/node_modules

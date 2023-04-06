@@ -3,7 +3,7 @@
 var isChannelReady = false;
 var isInitiator = false;
 var isStarted = false;
-var localStream;
+//var localStream;
 var pc;
 var remoteStream;
 var turnReady;
@@ -28,7 +28,7 @@ var room = 'foo';
 // Could prompt for room name:
 // room = prompt('Enter room name:');
 
-var socket = io.connect();
+var socket = io.connect("https://192.168.88.132");
 
 if (room !== '') {
   socket.emit('create or join', room);
@@ -92,46 +92,48 @@ socket.on('message', function(message) {
 
 ////////////////////////////////////////////////////
 
-var localVideo = document.querySelector('#localVideo');
+//var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
 
-navigator.mediaDevices.getUserMedia({
-  audio: true,
-  video: true
-})
-.then(gotStream)
-.catch(function(e) {
-  alert('getUserMedia() error: ' + e.name);
-});
+// navigator.mediaDevices.getUserMedia({
+//   audio: false,
+//   video: false
+// })
+// .then(gotStream)
+// .catch(function(e) {
+//   alert('getUserMedia() error: ' + e.name);
+// });
 
 function gotStream(stream) {
   console.log('Adding local stream.');
-  localStream = stream;
-  localVideo.srcObject = stream;
+  //localStream = stream;
+  //localVideo.srcObject = stream;
   sendMessage('got user media');
   if (isInitiator) {
     maybeStart();
   }
 }
 
+gotStream()
+
 var constraints = {
-  video: true
+  video: false
 };
 
 console.log('Getting user media with constraints', constraints);
 
 if (location.hostname !== 'localhost') {
-  requestTurn(
-    'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-  );
+   requestTurn(
+     'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+   );
 }
 
 function maybeStart() {
-  console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
-  if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
+  console.log('>>>>>>> maybeStart() ', isStarted, isChannelReady);
+  if (!isStarted && isChannelReady) {
     console.log('>>>>>> creating peer connection');
     createPeerConnection();
-    pc.addStream(localStream);
+    //pc.addStream(localStream);
     isStarted = true;
     console.log('isInitiator', isInitiator);
     if (isInitiator) {
@@ -249,7 +251,7 @@ function hangup() {
 function handleRemoteHangup() {
   console.log('Session terminated.');
   stop();
-  isInitiator = false;
+  //isInitiator = false;
 }
 
 function stop() {

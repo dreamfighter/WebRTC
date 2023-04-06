@@ -33,10 +33,15 @@ import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
+import okhttp3.OkHttpClient;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -44,6 +49,12 @@ import static io.socket.client.Socket.EVENT_CONNECT;
 import static io.socket.client.Socket.EVENT_DISCONNECT;
 import static org.webrtc.SessionDescription.Type.ANSWER;
 import static org.webrtc.SessionDescription.Type.OFFER;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class CompleteActivity extends AppCompatActivity {
     private static final String TAG = "CompleteActivity";
@@ -121,17 +132,58 @@ public class CompleteActivity extends AppCompatActivity {
         }
     }
 
+
     private void connectToSignallingServer() {
         try {
             // For me this was "http://192.168.1.220:3000";
             // $ hostname -I
-            String URL = "http://10.173.1.175:3030/";// "https://calm-badlands-59575.herokuapp.com/"; //
+            HostnameVerifier myHostnameVerifier = new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+            TrustManager[] trustAllCerts= new TrustManager[] { new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }};
+
+            SSLContext mySSLContext = null;
+            try {
+                mySSLContext = SSLContext.getInstance("TLS");
+                try {
+                    mySSLContext.init(null, trustAllCerts, null);
+                } catch (KeyManagementException e) {
+                    e.printStackTrace();
+                }
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+            OkHttpClient okHttpClient = new OkHttpClient.Builder().hostnameVerifier(myHostnameVerifier).sslSocketFactory(mySSLContext.getSocketFactory()).build();
+
+// default settings for all sockets
+            IO.setDefaultOkHttpWebSocketFactory(okHttpClient);
+            IO.setDefaultOkHttpCallFactory(okHttpClient);
+
+
+            String URL = "https://192.168.88.132/";// "https://calm-badlands-59575.herokuapp.com/"; //
             Log.e(TAG, "REPLACE ME: IO Socket:" + URL);
+            IO.Options opts = new IO.Options();
+            opts.callFactory = okHttpClient;
+            opts.webSocketFactory = okHttpClient;
+
             socket = IO.socket(URL);
 
             socket.on(EVENT_CONNECT, args -> {
                 Log.d(TAG, "connectToSignallingServer: connect");
-                socket.emit("create or join", "cuarto");
+                socket.emit("create or join", "foo");
             }).on("ipaddr", args -> {
                 Log.d(TAG, "connectToSignallingServer: ipaddr");
             }).on("created", args -> {
@@ -214,8 +266,10 @@ public class CompleteActivity extends AppCompatActivity {
         Log.d(TAG, "maybeStart: " + isStarted + " " + isChannelReady);
         if (!isStarted && isChannelReady) {
             isStarted = true;
+            Log.d(TAG, "maybeStart1: " + isStarted + " " + isChannelReady);
             if (isInitiator) {
-                doCall();
+                Log.d(TAG, "isInitiator: " + isInitiator);
+                //doCall();
             }
         }
     }

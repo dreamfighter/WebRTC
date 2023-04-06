@@ -3,15 +3,25 @@
 var os = require('os');
 var nodeStatic = require('node-static');
 var http = require('http');
+var https = require("https");
 var socketIO = require('socket.io');
+var fs = require( 'fs' );
 const port = process.env.PORT || 3030;
 
 var fileServer = new(nodeStatic.Server)();
-var app = http.createServer(function(req, res) {
-  fileServer.serve(req, res);
-}).listen(port);
+// var app = http.createServer(function(req, res) {
+//   fileServer.serve(req, res);//
+// }).listen(port);
 
-var io = socketIO.listen(app);
+var privateKey = fs.readFileSync( 'bandung.dev.key' ).toString();
+var certificate = fs.readFileSync( 'bandung.dev.crt' ).toString();
+var options = {key: privateKey, cert: certificate};
+var apps = https.createServer( options, function(req,res)
+{
+  fileServer.serve(req, res);
+} ).listen( 443 );
+
+var io = socketIO.listen(apps);
 io.sockets.on('connection', function(socket) {
 
   // convenience function to log server messages on the client
@@ -22,21 +32,21 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('message', function(message) {
-    log('Client said: ', message);
+    console.log('Client said: ', message);
     // for a real app, would be room-only (not broadcast)
     socket.broadcast.emit('message', message);
   });
 
   socket.on('create or join', function(room) {
-    log('Received request to create or join room ' + room);
+    console.log('Received request to create or join room ' + room);
 
     var clientsInRoom = io.sockets.adapter.rooms[room];
     var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-    log('Room ' + room + ' now has ' + numClients + ' client(s)');
+    console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
     if (numClients === 0) {
       socket.join(room);
-      log('Client ID ' + socket.id + ' created room ' + room);
+      console.log('Client ID ' + socket.id + ' created room ' + room);
       socket.emit('created', room, socket.id);
 
     } else if (numClients === 1) {
@@ -54,6 +64,7 @@ io.sockets.on('connection', function(socket) {
     var ifaces = os.networkInterfaces();
     for (var dev in ifaces) {
       ifaces[dev].forEach(function(details) {
+        console.log(details.address);
         if (details.family === 'IPv4' && details.address !== '127.0.0.1' && details.address !== '10.173.1.175') {
           socket.emit('ipaddr', details.address);
         }
